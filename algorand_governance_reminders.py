@@ -67,7 +67,7 @@ def get_new_period_timeline(data):
 
 if __name__ == '__main__':
     current_time = datetime.now()
-    api_key = 'gQcp1_HM80LpLpKQ2VHBPRISAWGGfz0sJxAprH-KWmg'
+    api_key = 'YOURKEYHERE'
     json_file = 'governance_snapshot.json'
     snapshot_data = read_json(json_file)
 
