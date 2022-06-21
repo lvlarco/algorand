@@ -1,5 +1,6 @@
 import requests
 import json
+from api_keys import KEYS
 from datetime import datetime, timedelta
 
 
@@ -47,8 +48,17 @@ def get_current_period(str_slug):
 
 def send_ifttt_request(event, key, json_data):
     maker_url = 'https://maker.ifttt.com/trigger/{}/with/key/{}'.format(event, key)
-    print('Sending IFTTT request for event {}'.format(event))
-    requests.post(maker_url, data=json_data)
+    try:
+        requests.post(maker_url, data=json_data)
+        print(
+            '[{}] IFTTT request sent for {}\n'
+            'Payload: {}'.format(
+                datetime.now().strftime('%Y-%m-%d %H:%M'),
+                str(event),
+                json_data)
+        )
+    except Exception as e:
+        print('[{}] {} {}'.format(datetime.now().strftime('%Y-%m-%d %H:%M'), type(e), e))
 
 
 def create_payload(val1, val2, val3):
@@ -67,7 +77,7 @@ def get_new_period_timeline(data):
 
 if __name__ == '__main__':
     current_time = datetime.now()
-    api_key = 'YOURKEYHERE'
+    key_lists = list(KEYS.values())
     json_file = 'governance_snapshot.json'
     snapshot_data = read_json(json_file)
 
@@ -79,7 +89,8 @@ if __name__ == '__main__':
         session_end = format_timestamp(session.get('voting_end_datetime'))
         if timedelta(minutes=1) < (current_time - session_start) <= timedelta(days=5):
             payload = create_payload(current_period, session_start, session_end)
-            send_ifttt_request('reminder_algo_vote', api_key, payload)
+            for api_key in key_lists:
+                send_ifttt_request('reminder_algo_vote', api_key, payload)
 
     # Period data
     period_data = request_governance_data(active=False)
@@ -87,13 +98,15 @@ if __name__ == '__main__':
     if period_count > snapshot_data.get('current_period'):
         new_period_start, new_period_end = get_new_period_timeline(period_data.get('results'))
         payload = create_payload(period_count, new_period_start, new_period_end)
-        send_ifttt_request('new_algo_gov_period', api_key, payload)
+        for api_key in key_lists:
+            send_ifttt_request('new_algo_gov_period', api_key, payload)
     for period in period_data.get('results'):
         period_start = format_timestamp(period.get('start_datetime'))
         if abs(period_start - current_time) <= timedelta(days=5):
             new_period_start, new_period_end = get_new_period_timeline(period_data.get('results'))
             payload = create_payload(period_count, new_period_start, new_period_end)
-            send_ifttt_request('reminder_algo_signup', api_key, payload)
+            for api_key in key_lists:
+                send_ifttt_request('reminder_algo_signup', api_key, payload)
 
     snapshot = {"period_count": period_count,
                 "current_period": current_period,
